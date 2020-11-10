@@ -1,4 +1,5 @@
 .git/
+.idea/
 docker/
 logdevice/build/
 logdevice/external/folly/.git/
