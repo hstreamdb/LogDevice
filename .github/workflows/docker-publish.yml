@@ -1,0 +1,35 @@
+name: docker-publish
+
+on:
+  push:
+  pull_request:
+
+env:
+  IMAGE_NAME: hstreamdb/logdevice
+  IMAGE_NAME_CLIENT: hstreamdb/logdevice-client
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Build & Push images
+        run: |
+          echo "Docker build..."
+          docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME
+
+          if [ "${{ github.event_name }}" == 'push' ]; then
+            if [ "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+              echo "Docker login..."
+              echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+              docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME_CLIENT:latest --target client
+              docker push $IMAGE_NAME_CLIENT:latest
+              docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME:latest
+              docker push $IMAGE_NAME:latest
+            else
+              echo "No such secrets, ignored."
+            fi
+          fi

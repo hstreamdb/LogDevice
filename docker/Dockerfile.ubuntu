@@ -38,9 +38,47 @@ ENV CXX=clang++-9
 RUN cmake -Dthriftpy3=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF /LogDevice/logdevice/ \
     && make -j ${PARALLEL:-$(nproc)}
 
+# Install all logdevice components.
+RUN make install -j${PARALLEL:-$(nproc)} && \
+    cd /build/folly-prefix/src/folly-build/ && make install -j${PARALLEL:-$(nproc)} && \
+    cp /build/staging/usr/local/lib/*.so /usr/local/lib/
+
+# XXX
+RUN rm -rf /usr/local/include/logdevice && \
+    mkdir -p /usr/local/include/logdevice/include && \
+    cp -R /LogDevice/logdevice/include/* /usr/local/include/logdevice/include/
+
 CMD /bin/bash
 
+# -----------------------------------------------------------------------------
+# The client image
+# -----------------------------------------------------------------------------
+
+FROM ubuntu:bionic AS client
+
+COPY --from=builder /LogDevice/logdevice/build_tools/ubuntu_client.deps /tmp/ubuntu_client.deps
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      gcc g++ $(cat /tmp/ubuntu_client.deps) && \
+    rm -rf /var/lib/apt/lists/* /tmp/*.deps && apt-get clean
+
+COPY --from=builder /usr/local/include/folly/ /usr/local/include/folly/
+COPY --from=builder /usr/local/include/logdevice/ /usr/local/include/logdevice/
+
+COPY --from=builder /usr/local/lib/liblogdevice.so \
+                    /build/staging/usr/local/lib/*.so \
+                    /tmp/lib/
+
+RUN strip --strip-unneeded /tmp/lib/*.so && \
+    cp /tmp/lib/*.so /usr/local/lib/ && \
+    rm -rf /tmp/lib
+
+CMD /bin/bash
+
+# -----------------------------------------------------------------------------
 # The production image
+# -----------------------------------------------------------------------------
+
 FROM ubuntu:bionic
 
 # ldshell _requires_ utf-8
@@ -80,3 +118,5 @@ RUN apt-get update && \
 EXPOSE 4440 4441 4443 6440
 
 CMD /usr/local/bin/ld-dev-cluster
+
+# vim: set ft=dockerfile:
