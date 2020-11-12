@@ -7,6 +7,7 @@ on:
 env:
   IMAGE_NAME: hstreamdb/logdevice
   IMAGE_NAME_CLIENT: hstreamdb/logdevice-client
+  IMAGE_CACHE_DIR: ~/.cache/docker
 
 jobs:
   build:
@@ -16,19 +17,38 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Cache docker builds
+        uses: actions/cache@v2
+        with:
+          path: |
+            $IMAGE_CACHE_DIR
+          key: ${{ runner.os }}-${{ hashFiles('docker/*') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
       - name: Build & Push images
         run: |
-          echo "Docker build..."
-          docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME
+          mkdir -p $IMAGE_CACHE_DIR
+
+          image_tag=latest    # TODO
+          image_cached_key="${IMAGE_CACHE_DIR}/$(echo ${IMAGE_NAME}_${image_tag} | sed 's#/#_#g')"
+
+          test -f $image_cached_key && \
+              echo "-> Loading image cache from $image_cached_key" && \
+              docker load -i $image_cached_key
+          echo "-> Docker build..."
+          docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME:$image_tag
+          # FIXME: this caching doesn't work
+          echo "-> Docker save..."
+          docker save -o $image_cached_key $IMAGE_NAME:$image_tag
 
           if [ "${{ github.event_name }}" == 'push' ]; then
             if [ "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
               echo "Docker login..."
               echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-              docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME_CLIENT:latest --target client
-              docker push $IMAGE_NAME_CLIENT:latest
-              docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME:latest
-              docker push $IMAGE_NAME:latest
+              docker build . -f docker/Dockerfile.ubuntu --tag $IMAGE_NAME_CLIENT:$image_tag --target client
+              docker push $IMAGE_NAME_CLIENT:$image_tag
+              docker push $IMAGE_NAME:$image_tag
             else
               echo "No such secrets, ignored."
             fi
