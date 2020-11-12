@@ -42,11 +42,13 @@ RUN cmake -Dthriftpy3=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF /LogDevice
 RUN make install -j${PARALLEL:-$(nproc)} && \
     cd /build/folly-prefix/src/folly-build/ && make install -j${PARALLEL:-$(nproc)} && \
     cp /build/staging/usr/local/lib/*.so /usr/local/lib/
-
 # XXX
 RUN rm -rf /usr/local/include/logdevice && \
     mkdir -p /usr/local/include/logdevice/include && \
     cp -R /LogDevice/logdevice/include/* /usr/local/include/logdevice/include/
+
+# Install rockdb
+RUN cd /build/rocksdb-prefix/src/rocksdb-build/ && make install -j${PARALLEL:-$(nproc)}
 
 CMD /bin/bash
 
@@ -64,14 +66,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /usr/local/include/folly/ /usr/local/include/folly/
 COPY --from=builder /usr/local/include/logdevice/ /usr/local/include/logdevice/
+COPY --from=builder /usr/include/rocksdb/ /usr/local/include/rocksdb/
 
 COPY --from=builder /usr/local/lib/liblogdevice.so \
                     /build/staging/usr/local/lib/*.so \
-                    /tmp/lib/
+                    /usr/lib/x86_64-linux-gnu/librocksdb.so.6.6.1 \
+                    /usr/local/lib/logdevice/
 
-RUN strip --strip-unneeded /tmp/lib/*.so && \
-    cp /tmp/lib/*.so /usr/local/lib/ && \
-    rm -rf /tmp/lib
+RUN strip --strip-unneeded /usr/local/lib/logdevice/*
 
 CMD /bin/bash
 

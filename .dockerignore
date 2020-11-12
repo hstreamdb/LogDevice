@@ -6,3 +6,4 @@ logdevice/build/
 logdevice/external/folly/.git/
 logdevice/external/rocksdb/.git/
 **/_build
+README.md
