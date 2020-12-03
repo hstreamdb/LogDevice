@@ -1,3 +1,8 @@
+libatomic1
+libdwarf1
+libboost-atomic1.65.1
+libboost-chrono1.65.1
+libboost-date-time1.65.1
 libunwind8
 libboost-filesystem1.65.1
 libboost-program-options1.65.1
