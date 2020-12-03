@@ -12,8 +12,8 @@ set(GTEST_FORCE_SHARED_CRT ON)
 set(GTEST_DISABLE_PTHREADS OFF)
 
 ExternalProject_Add(googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.8.1
+    SOURCE_DIR "${LOGDEVICE_DIR}/external/gtest/src"
+    DOWNLOAD_COMMAND ""
     CMAKE_ARGS -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG:PATH=DebugLibs
     -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE:PATH=ReleaseLibs
     -DCMAKE_CXX_FLAGS=${MSVC_COMPILER_DEFS}
