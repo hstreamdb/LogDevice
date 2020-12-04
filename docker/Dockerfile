@@ -4,30 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-FROM ubuntu:bionic as builder
+FROM hstreamdb/logdevice-builder as deps
 
-MAINTAINER Ahmed Soliman <asoli@fb.com>
-
-COPY logdevice/build_tools/ubuntu.deps /tmp/ubuntu.deps
-
-RUN apt-get update \
-    && apt-get install --no-install-recommends \
-      -y $(cat /tmp/ubuntu.deps) \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /build/staging/usr/local \
-    && python3 -m pip install setuptools \
-    && python3 -m pip install virtualenv
-
-# Activating the virtualenv
-ENV VIRTUAL_ENV=/build/staging/usr/local
-RUN python3 -m virtualenv --python=/usr/bin/python3 $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-RUN python3 -m pip install --upgrade setuptools wheel cython
-
-COPY . LogDevice
-
-WORKDIR /build
+COPY . /LogDevice
 
 # Controls the build parallelism, it defaults to the number of cores, use this
 # to reduce the total memory used during compilation.
@@ -37,6 +16,14 @@ ENV CC=clang-9
 ENV CXX=clang++-9
 RUN cmake -Dthriftpy3=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF /LogDevice/logdevice/ \
     && make -j ${PARALLEL:-$(nproc)}
+
+# -----------------------------------------------------------------------------
+# The all-in-one image
+# -----------------------------------------------------------------------------
+
+FROM hstreamdb/logdevice-builder as dev
+
+COPY --from=deps /build /build
 
 # Install all logdevice components.
 RUN make install -j${PARALLEL:-$(nproc)} && \
@@ -50,6 +37,7 @@ RUN rm -rf /usr/local/include/logdevice && \
 # Install rockdb
 RUN cd /build/rocksdb-prefix/src/rocksdb-build/ && make install -j${PARALLEL:-$(nproc)}
 
+ENV PATH="/build/bin:$PATH"
 CMD /bin/bash
 
 # -----------------------------------------------------------------------------
@@ -58,20 +46,20 @@ CMD /bin/bash
 
 FROM ubuntu:bionic AS client
 
-COPY --from=builder /LogDevice/logdevice/build_tools/ubuntu_client.deps /tmp/ubuntu_client.deps
+COPY --from=dev /LogDevice/logdevice/build_tools/ubuntu_client.deps /tmp/ubuntu_client.deps
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc g++ $(cat /tmp/ubuntu_client.deps) && \
     rm -rf /var/lib/apt/lists/* /tmp/*.deps && apt-get clean
 
-COPY --from=builder /usr/local/include/folly/ /usr/local/include/folly/
-COPY --from=builder /usr/local/include/logdevice/ /usr/local/include/logdevice/
-COPY --from=builder /usr/include/rocksdb/ /usr/local/include/rocksdb/
+COPY --from=dev /usr/local/include/folly/ /usr/local/include/folly/
+COPY --from=dev /usr/local/include/logdevice/ /usr/local/include/logdevice/
+COPY --from=dev /usr/include/rocksdb/ /usr/local/include/rocksdb/
 
-COPY --from=builder /usr/local/lib/liblogdevice.so \
-                    /build/staging/usr/local/lib/*.so \
-                    /usr/lib/x86_64-linux-gnu/librocksdb.so.6.6.1 \
-                    /usr/local/lib/logdevice/
+COPY --from=dev /usr/local/lib/liblogdevice.so \
+                /build/staging/usr/local/lib/*.so \
+                /usr/lib/x86_64-linux-gnu/librocksdb.so.6.6.1 \
+                /usr/local/lib/logdevice/
 
 RUN strip --strip-unneeded /usr/local/lib/logdevice/*
 
@@ -87,27 +75,27 @@ FROM ubuntu:bionic
 ENV LANG C.UTF-8
 
 # Copy LogDevice user tools
-COPY --from=builder /build/bin/ld* \
-                  /build/bin/logdeviced \
-                  /usr/local/bin/
+COPY --from=dev /build/bin/ld* \
+                /build/bin/logdeviced \
+                /usr/local/bin/
 
 # Python tools, ldshell, ldquery and libs
 # Folly python bindings
-COPY --from=builder /build/fbthrift-prefix/src/fbthrift-build/thrift/lib/py3/cybld/dist/thrift-*.whl /tmp/
+COPY --from=dev /build/fbthrift-prefix/src/fbthrift-build/thrift/lib/py3/cybld/dist/thrift-*.whl /tmp/
 # Thrift Py3
-COPY --from=builder /build/folly-prefix/src/folly-build/folly/cybld/dist/folly-*.whl /tmp/
+COPY --from=dev /build/folly-prefix/src/folly-build/folly/cybld/dist/folly-*.whl /tmp/
 # libfolly/lib(Thrift) libraries
-COPY --from=builder /build/staging/usr/local/lib/*.so /usr/local/lib/
+COPY --from=dev /build/staging/usr/local/lib/*.so /usr/local/lib/
 # LDShell, LDops, ldquery, etc.
-COPY --from=builder /build/python-out/dist/ldshell-*.whl /tmp/
+COPY --from=dev /build/python-out/dist/ldshell-*.whl /tmp/
 # LogDevice client library python bindings
-COPY --from=builder /build/lib/*.so /usr/local/lib/
+COPY --from=dev /build/lib/*.so /usr/local/lib/
 
 # Install runtime dependencies for ld-dev-cluster, ldshell friends.
 # To install the ldshell wheel we also need python3 build tools, as
 # we depend on python-Levenshtein for which a many-linux binary wheel is not
 # available; these are removed following install to keep docker image size low.
-COPY --from=builder /LogDevice/logdevice/build_tools/ubuntu_runtime.deps /tmp/logdevice_runtime.deps
+COPY --from=dev /LogDevice/logdevice/build_tools/ubuntu_runtime.deps /tmp/logdevice_runtime.deps
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $(cat /tmp/logdevice_runtime.deps) \
