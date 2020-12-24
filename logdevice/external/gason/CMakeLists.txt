@@ -9,14 +9,13 @@ project(gason_builder C CXX)
 include(ExternalProject)
 
 ExternalProject_Add(gason_sources
-    GIT_REPOSITORY https://github.com/vivkin/gason.git
-    GIT_TAG ede29fc5f0de8e47fd82c09f2f98123d2c867f28
+    PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
+    SOURCE_DIR ${LOGDEVICE_DIR}/external/gason/src
+    DOWNLOAD_COMMAND ""
     # Disable configure, build and install steps: we just want the source
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
-    PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
-    SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/gason"
     )
 
 # Specify include dir

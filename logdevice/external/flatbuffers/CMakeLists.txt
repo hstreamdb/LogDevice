@@ -15,8 +15,8 @@ include(ExternalProject)
 # upgrade flatbuffers as they wish.
 
 ExternalProject_Add(flatbuffers
-    GIT_REPOSITORY https://github.com/google/flatbuffers.git
-    GIT_TAG v1.5.0
+    SOURCE_DIR "${LOGDEVICE_DIR}/external/flatbuffers/src"
+    DOWNLOAD_COMMAND ""
     # Disable configure, build and install steps: we just want the headers
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
