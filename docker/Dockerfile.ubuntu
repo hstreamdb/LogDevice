@@ -18,19 +18,50 @@ RUN apt-get update \
 
 COPY . LogDevice
 
+ARG PARALLEL
+
 RUN mkdir /build && cd /build && \
     cmake /LogDevice/logdevice/ && \
-    make -j $(nproc) && \
-    make install && \
+    make -j${PARALLEL:-$(nproc)} && \
+    make install -j${PARALLEL:-$(nproc)} && \
     cp /build/bin/ld* /usr/local/bin/
 
 RUN cd /LogDevice/logdevice/ops && python3 setup.py sdist bdist_wheel
+RUN strip --strip-unneeded /usr/local/lib/*.so
 
 WORKDIR /build
 
 CMD /bin/bash
 
+# -----------------------------------------------------------------------------
+# The client base image
+# -----------------------------------------------------------------------------
+
+FROM ubuntu:bionic as client
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends g++
+
+COPY --from=builder /build/staging/usr/local/include/folly/ /usr/local/include/folly/
+COPY --from=builder /build/staging/usr/include/rocksdb/ /usr/local/include/rocksdb/
+COPY --from=builder /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
+
+COPY --from=builder /build/staging/usr/local/lib/libfolly.so \
+                    /build/staging/usr/lib/x86_64-linux-gnu/librocksdb.so.6.3.0 \
+                    /usr/local/lib/liblogdevice.so \
+                    /usr/local/lib/
+
+RUN ln -sr /usr/local/lib/librocksdb.so.6.3.0 /usr/local/lib/librocksdb.so.6 && \
+    ln -sr /usr/local/lib/librocksdb.so.6 /usr/local/lib/librocksdb.so
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+CMD /bin/bash
+
+# -----------------------------------------------------------------------------
 # The production image
+# -----------------------------------------------------------------------------
+
 FROM ubuntu:bionic
 
 # ldshell _requires_ utf-8
@@ -42,7 +73,9 @@ COPY --from=builder /build/bin/ld* \
 
 # Python tools, ldshell, ldquery and client lib
 COPY --from=builder /LogDevice/logdevice/ops/dist/ldshell-*.whl /tmp
-COPY --from=builder /build/lib/liblogdevice.so /usr/local/lib/
+COPY --from=builder /build/lib/liblogdevice.so \
+                    /build/staging/usr/local/lib/libfolly.so \
+                    /usr/local/lib/
 COPY --from=builder /build/lib/client.so \
     /usr/local/lib/python3.6/dist-packages/logdevice/client.so
 COPY --from=builder /build/lib/ext.so \
@@ -72,3 +105,5 @@ RUN apt-get update && \
 EXPOSE 4440 4441 4443 5440 6440
 
 CMD /usr/local/bin/ld-dev-cluster
+
+# vim: set ft=dockerfile:

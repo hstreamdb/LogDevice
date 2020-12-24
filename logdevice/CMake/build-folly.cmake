@@ -16,7 +16,10 @@ endif()
 ExternalProject_Add(folly
     SOURCE_DIR "${FOLLY_ROOT_DIR}"
     DOWNLOAD_COMMAND ""
-    CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=True -DCXX_STD=gnu++17
+    CMAKE_ARGS
+       -DCMAKE_POSITION_INDEPENDENT_CODE=True
+       -DCXX_STD=gnu++17
+       -DBUILD_SHARED_LIBS=ON
        -DCMAKE_CXX_STANDARD=17
        ${_folly_cmake_extra_opts}
     INSTALL_COMMAND make install DESTDIR=${LOGDEVICE_STAGING_DIR}
@@ -25,12 +28,14 @@ ExternalProject_Add(folly
 ExternalProject_Get_Property(folly SOURCE_DIR)
 ExternalProject_Get_Property(folly BINARY_DIR)
 
+add_dependencies(folly fmt)
+
 set(FOLLY_LIBRARIES
-    ${BINARY_DIR}/libfolly.a)
+    ${BINARY_DIR}/libfolly.so)
 set(FOLLY_BENCHMARK_LIBRARIES
-    ${BINARY_DIR}/folly/libfollybenchmark.a)
+    ${BINARY_DIR}/folly/libfollybenchmark.so)
 set(FOLLY_TEST_UTIL_LIBRARIES
-    ${BINARY_DIR}/libfolly_test_util.a)
+    ${BINARY_DIR}/libfolly_test_util.so)
 
 set(FOLLY_INCLUDE_DIR ${SOURCE_DIR})
 message(STATUS "Folly Library: ${FOLLY_LIBRARIES}")
