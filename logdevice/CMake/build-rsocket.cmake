@@ -7,11 +7,10 @@
 include(ExternalProject)
 
 ExternalProject_Add(rsocket
-    GIT_REPOSITORY https://github.com/rsocket/rsocket-cpp.git
-    GIT_TAG master
+    SOURCE_DIR "${LOGDEVICE_DIR}/external/rsocket-cpp"
+    DOWNLOAD_COMMAND ""
     # Disable configure, build and install steps: we just want the source
     PREFIX "${CMAKE_CURRENT_BINARY_DIR}"
-    SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/external/rsocket-cpp"
     CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=True
         -DCMAKE_PREFIX_PATH=${LOGDEVICE_STAGING_DIR}/usr/local
         -DBUILD_TESTS=OFF

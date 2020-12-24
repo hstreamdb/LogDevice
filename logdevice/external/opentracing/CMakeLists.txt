@@ -9,8 +9,8 @@ project(opentracing_builder C CXX)
 include(ExternalProject)
 
 ExternalProject_Add(OpenTracing
-    GIT_REPOSITORY https://github.com/opentracing/opentracing-cpp.git
-    GIT_TAG v1.5.0
+    SOURCE_DIR "${LOGDEVICE_DIR}/external/opentracing/src"
+    DOWNLOAD_COMMAND ""
     CMAKE_ARGS -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG:PATH=DebugLibs
     -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE:PATH=ReleaseLibs
     -DCMAKE_POSITION_INDEPENDENT_CODE=True

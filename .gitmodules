@@ -14,3 +14,21 @@
 [submodule "logdevice/external/fbthrift"]
 	path = logdevice/external/fbthrift
 	url = https://github.com/facebook/fbthrift/
+[submodule "logdevice/external/gtest/src"]
+	path = logdevice/external/gtest/src
+	url = https://github.com/google/googletest.git
+[submodule "logdevice/external/flatbuffers/src"]
+	path = logdevice/external/flatbuffers/src
+	url = https://github.com/google/flatbuffers.git
+[submodule "logdevice/external/gason/src"]
+	path = logdevice/external/gason/src
+	url = https://github.com/vivkin/gason.git
+[submodule "logdevice/external/fmt"]
+	path = logdevice/external/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "logdevice/external/opentracing/src"]
+	path = logdevice/external/opentracing/src
+	url = https://github.com/opentracing/opentracing-cpp.git
+[submodule "logdevice/external/rsocket-cpp"]
+	path = logdevice/external/rsocket-cpp
+	url = https://github.com/rsocket/rsocket-cpp.git
