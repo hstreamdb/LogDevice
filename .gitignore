@@ -15,3 +15,5 @@ logdevice_*.build
 logdevice_*.buildinfo
 logdevice_*.changes
 logdevice-dbgsym_*.ddeb
+/.idea
+_local/
