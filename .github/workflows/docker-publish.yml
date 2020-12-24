@@ -1,0 +1,38 @@
+name: docker-publish
+
+on:
+  push:
+    branches: [main, hstream]
+  pull_request:
+
+env:
+  IMAGE_ORG: hstreamdb
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Prepare logdevice-builder
+        run: |
+          docker build . -f docker/Dockerfile.builder --tag $IMAGE_ORG/logdevice-builder
+          if [ "${{ github.event_name }}" == 'push' ]; then
+            if [ "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+              echo "Docker login..."
+              echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+              docker push $IMAGE_ORG/logdevice-builder
+            else
+              echo "No such secrets, ignored."
+            fi
+          fi
+
+      - name: Build logdevice
+        run: |
+          docker build . -f docker/Dockerfile --tag logdevice
+          docker build . -f docker/Dockerfile --tag logdevice-dev --target dev
+          docker build . -f docker/Dockerfile --tag logdevice-client --target client
+
+      # TODO: run tests
