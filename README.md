@@ -1,5 +1,4 @@
 # LogDevice
-[![Build Status](https://circleci.com/gh/facebookincubator/LogDevice.svg?style=shield&circle-token=1a68ba9a5f81ea693f341726bc4039980490f16e)](https://circleci.com/gh/facebookincubator/LogDevice) [![Gitter](https://badges.gitter.im/facebookincubator/LogDevice.svg)](https://gitter.im/facebookincubator/LogDevice?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 LogDevice is a scalable and fault tolerant distributed log system. While a
 file-system stores and serves data organized as files, a log system stores and
@@ -20,7 +19,7 @@ and consistency-availability space. Here are some examples of workloads supporte
 * Replicated state machines
 * Journals of deferred work items
 
-For full documentation, please visit [logdevice.io](https://logdevice.io/). 
+For full documentation, please visit [logdevice.io](https://logdevice.io/).
 
 ## Requirements
 LogDevice is only supported on Ubuntu 18.04 (Bionic Beaver). However, it should
