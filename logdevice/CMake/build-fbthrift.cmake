@@ -49,6 +49,10 @@ set(FBTHRIFT_LIBRARIES
     ${BINARY_DIR}/lib/libthriftmetadata.so
     ${BINARY_DIR}/lib/librpcmetadata.so
 )
+if(thriftpy3)
+  LIST(APPEND FBTHRIFT_LIBRARIES
+              ${BINARY_DIR}/lib/libthriftenums.so)
+endif()
 
 set(FBTHRIFT_INCLUDE_DIR
     ${SOURCE_DIR} ${BINARY_DIR})

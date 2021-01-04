@@ -200,9 +200,9 @@ macro(ld_thrift_py3_library file_name services options file_path output_path inc
 
     add_dependencies(${file_name}-py3-target ${file_name}-cpp2-target)
 
-    set(_cython_modules "types")
+    set(_cython_modules "types" "types_reflection")
     if(NOT "${services}" STREQUAL "")
-      list(APPEND _cython_modules "clients")
+      list(APPEND _cython_modules "clients" "services_reflection")
     endif()
 
     foreach(_src ${_cython_modules})
@@ -212,7 +212,9 @@ macro(ld_thrift_py3_library file_name services options file_path output_path inc
       message(STATUS "Create Cython module ${_module_name} from ${_pyx}")
 
       set(_generated_module_sources "${output_path}/${_cxx}")
-      if(NOT ${_src} STREQUAL "types")
+      if(NOT (${_src} STREQUAL "types" OR
+	      ${_src} STREQUAL "types_reflection" OR
+	      ${_src} STREQUAL "services_reflection"))
         list(APPEND _generated_module_sources
           "${output_path}/gen-py3/${file_name}/${_src}_wrapper.cpp"
         )
@@ -230,10 +232,21 @@ macro(ld_thrift_py3_library file_name services options file_path output_path inc
       )
 
       python_add_module(${_module_name} ${_generated_module_sources})
+      set(additional_dep_libs)
+      if(${file_name} STREQUAL "cluster_membership" OR
+         ${file_name} STREQUAL "safety")
+	set(additional_dep_libs "nodes-cpp2")
+	message("Add dependent types-cpp2 library for ${file_name}")
+      endif()
+      if(${file_name} STREQUAL "maintenance")
+	set(additional_dep_libs "nodes-cpp2" "safety-cpp2")
+	message("Add dependent types-cpp2 safety-cpp2 library for ${file_name}")
+      endif()
       if(${BUILD_SUBMODULES})
         target_link_libraries(${_module_name}
           PRIVATE
           "${file_name}-cpp2"
+	  ${additional_dep_libs}
           ${FBTHRIFT_LIBRARIES}
           ${FOLLY_LIBRARIES}
         )
@@ -241,6 +254,7 @@ macro(ld_thrift_py3_library file_name services options file_path output_path inc
         target_link_libraries(${_module_name}
           PRIVATE
           "${file_name}-cpp2"
+	  ${additional_dep_libs}
           FBThrift::thriftcpp2
           Folly::folly
         )
