@@ -10,20 +10,23 @@ MAINTAINER Ahmed Soliman <asoli@fb.com>
 
 COPY logdevice/build_tools/ubuntu.deps /tmp/ubuntu.deps
 
+RUN  sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list
+RUN  apt-get clean
+
 RUN apt-get update \
     && apt-get install --no-install-recommends \
       -y $(cat /tmp/ubuntu.deps) \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /build/staging/usr/local \
-    && python3 -m pip install setuptools \
-    && python3 -m pip install virtualenv
+    && mkdir -p /build/staging/usr/local \ 
+    && python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple setuptools \
+    && python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple virtualenv
 
 # Activating the virtualenv
 ENV VIRTUAL_ENV=/build/staging/usr/local
 RUN python3 -m virtualenv --python=/usr/bin/python3 $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN python3 -m pip install --upgrade setuptools wheel cython
+RUN python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade setuptools wheel cython
 
 COPY . LogDevice
 
