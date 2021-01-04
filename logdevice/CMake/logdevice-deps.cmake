@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 # Python version can be chosen by specifying e.g.:
-set(LD_PYTHON_VERSION 3.5 CACHE STRING "Python version")
+set(LD_PYTHON_VERSION 3.6 CACHE STRING "Python version")
 find_package(PythonInterp ${LD_PYTHON_VERSION} REQUIRED)
 find_package(PythonLibs ${LD_PYTHON_VERSION} REQUIRED)
 if(thriftpy3)
@@ -20,7 +20,7 @@ set(_boost_py_component3
 	    python)
 
 foreach(_boost_py_component ${_boost_py_component1} ${_boost_py_component2} ${_boost_py_component3})
-  find_package(Boost 1.55.0 COMPONENTS
+  find_package(Boost 1.65.1 COMPONENTS
     context
     chrono
     date_time

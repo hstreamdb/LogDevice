@@ -13,7 +13,7 @@
 #include <folly/String.h>
 #include <folly/json.h>
 
-#include "external/gason/gason.h"
+#include "external/gason/src/gason.h"
 #include "logdevice/common/configuration/UpdateableConfig.h"
 #include "logdevice/common/debug.h"
 #include "logdevice/lib/ClientImpl.h"
