@@ -232,6 +232,7 @@ macro(ld_thrift_py3_library file_name services options file_path output_path inc
       )
 
       python_add_module(${_module_name} ${_generated_module_sources})
+      add_dependencies(${_module_name} ${file_name}-py3-target)
       set(additional_dep_libs)
       if(${file_name} STREQUAL "cluster_membership" OR
          ${file_name} STREQUAL "safety")
