@@ -17,3 +17,5 @@ logdevice_*.changes
 logdevice-dbgsym_*.ddeb
 /.idea
 _local/
+/logdevice/external/opentracing/
+logdevice/external/rsocket-cpp/
