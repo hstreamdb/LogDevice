@@ -87,6 +87,10 @@ else()
     FBThrift::thriftcpp2
     FBThrift::thrift
   )
+  if(thriftpy3)
+    list(APPEND FBTHRIFT_LIBRARIES FBThrift::thriftenums)
+  endif()
+  message("FBThrift_libs is: ${FBTHRIFT_LIBRARIES}")
   include(${THRIFT_COMPILER_INCLUDE}/thrift/ThriftLibrary.cmake)
 
   # If we are not building the submodules, replace targets with fake targets so
