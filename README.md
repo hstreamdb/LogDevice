@@ -1,5 +1,7 @@
 # LogDevice
 
+> Note: This is an archived project and is no longer supported or updated by Facebook.
+
 LogDevice is a scalable and fault tolerant distributed log system. While a
 file-system stores and serves data organized as files, a log system stores and
 delivers data organized as logs. The log can be viewed as a record-oriented,

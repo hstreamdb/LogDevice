@@ -61,6 +61,7 @@ foreach(THRIFT_SOURCE
       "logdevice-admin-${THRIFT_SOURCE}-types-py3"
       PRIVATE
         admin-cpp2
+        thriftenums
         ${_common_libs})
   endif()
 endforeach()
@@ -102,6 +103,7 @@ if(thriftpy3)
     "logdevice-admin-clients-py3"
     PRIVATE
       admin-cpp2
+      thriftenums
       ${_common_libs})
 
   add_dependencies(admin-py3-target admin-cpp2)
