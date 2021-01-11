@@ -200,14 +200,6 @@ const Showcase = props => {
   );
 };
 
-const ArchivalNotice = props => {
-	return (
-    <div className="archivalNotice">
-      Note: This is an archived project and is no longer supported or updated by Facebook.
-    </div>
-  );
-};
-
 class Index extends React.Component {
   render() {
     let language = this.props.language || '';
@@ -215,7 +207,6 @@ class Index extends React.Component {
     return (
       <div>
         <HomeSplash language={language} />
-        <ArchivalNotice />
         <div className="mainContainer">
           <Features />
           <Description />
