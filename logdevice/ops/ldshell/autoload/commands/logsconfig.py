@@ -433,8 +433,9 @@ def _get_logsconfig_node(path=None, logid=None):
             # specific and should either result
             return c.get_log_group_by_id(logid)
         else:
-            path = c.get_directory_delimiter() if path is None else path
-        return c.get_log_group_by_name(str(path))
+            if path is None:
+                return c.get_directory(str(c.get_directory_delimiter()))
+            return c.get_log_group_by_name(str(path))
     except LogDeviceError:
         try:
             return c.get_directory(str(path))
