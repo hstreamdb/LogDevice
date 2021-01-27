@@ -6,4 +6,11 @@ logdevice/build/
 logdevice/external/folly/.git/
 logdevice/external/rocksdb/.git/
 **/_build
+**/_local
 README.md
+website/
+**/logdevice_*.deb
+**/logdevice_*.build
+**/logdevice_*.buildinfo
+**/logdevice_*.changes
+**/logdevice-dbgsym_*.ddeb

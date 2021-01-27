@@ -18,6 +18,7 @@ jobs:
 
       - name: Prepare logdevice-builder
         run: |
+          docker pull $IMAGE_ORG/logdevice-builder || true
           docker build . -f docker/Dockerfile.builder --tag $IMAGE_ORG/logdevice-builder
           if [ "${{ github.event_name }}" == 'push' ]; then
             if [ "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
