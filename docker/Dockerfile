@@ -22,25 +22,34 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 CMD /bin/bash
 
 # -----------------------------------------------------------------------------
-# The client image
+# The client image (for haskell)
 # -----------------------------------------------------------------------------
 
 FROM ubuntu:bionic AS client
 
-COPY --from=deps /LogDevice/logdevice/build_tools/ubuntu_client.deps /tmp/ubuntu_client.deps
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      gcc g++ $(cat /tmp/ubuntu_client.deps) && \
+      gcc g++ && \
     rm -rf /var/lib/apt/lists/* /tmp/*.deps && apt-get clean
 
 COPY --from=deps /build/staging/usr/local/include/folly/ /usr/local/include/folly/
+COPY --from=deps /build/staging/usr/local/include/thrift/ /usr/local/include/thrift/
+COPY --from=deps /build/staging/usr/local/include/wangle/ /usr/local/include/wangle/
+COPY --from=deps /build/staging/usr/local/include/fmt/ /usr/local/include/fmt/
 COPY --from=deps /build/staging/usr/include/rocksdb/ /usr/local/include/rocksdb/
+COPY --from=deps /build/common/fb303/ /usr/local/include/common/fb303/
+COPY --from=deps /build/logdevice/admin/if/gen-cpp2/*.h /usr/local/include/logdevice/admin/if/gen-cpp2/
+COPY --from=deps /build/logdevice/common/if/gen-cpp2/*.h /usr/local/include/logdevice/common/if/gen-cpp2/
+COPY --from=deps /build/logdevice/common/membership/gen-cpp2/*.h /usr/local/include/logdevice/common/membership/gen-cpp2/
 COPY --from=deps /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
 
-COPY --from=deps /build/staging/usr/local/lib/libfolly.so \
+COPY --from=deps /build/staging/usr/local/lib/*.so \
                  /build/staging/usr/lib/x86_64-linux-gnu/librocksdb.so.6.6.1 \
                  /usr/local/lib/liblogdevice.so \
                  /usr/local/lib/
+
+COPY --from=deps /build/logdevice/admin/if/gen-py3/logdevice/admin/clients.so \
+                 /usr/local/lib/liblogdevice_admin_clients.so
 
 RUN strip --strip-unneeded /usr/local/lib/*.so*
 
