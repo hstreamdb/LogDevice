@@ -33,7 +33,6 @@ jobs:
       - name: Build logdevice
         run: |
           docker build . -f docker/Dockerfile --tag logdevice
-          docker build . -f docker/Dockerfile --tag logdevice-dev --target dev
           docker build . -f docker/Dockerfile --tag logdevice-client --target client
 
       # TODO: run tests

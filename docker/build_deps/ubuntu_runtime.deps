@@ -14,7 +14,6 @@ libevent-openssl-2.1-6
 libdouble-conversion1
 libzookeeper-mt2
 libgoogle-glog0v5
-libjemalloc1
 libsnappy1v5
 libpython3.6
 python3-pip
