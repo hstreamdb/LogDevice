@@ -6,7 +6,9 @@
 
 FROM hstreamdb/logdevice-builder as deps
 
-COPY . /LogDevice
+COPY logdevice/ /LogDevice/logdevice/
+COPY build/     /LogDevice/build/
+COPY common/    /LogDevice/common/
 
 # Controls the build parallelism, it defaults to the number of cores, use this
 # to reduce the total memory used during compilation.
@@ -25,8 +27,7 @@ CMD /bin/bash
 # The client image (for haskell)
 # -----------------------------------------------------------------------------
 
-FROM ubuntu:bionic AS client
-
+FROM ubuntu:focal AS client
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc g++ && \
@@ -43,10 +44,17 @@ COPY --from=deps /build/logdevice/common/if/gen-cpp2/*.h /usr/local/include/logd
 COPY --from=deps /build/logdevice/common/membership/gen-cpp2/*.h /usr/local/include/logdevice/common/membership/gen-cpp2/
 COPY --from=deps /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
 
+COPY --from=deps /build/staging/usr/local/bin/thrift1 /usr/local/bin/thrift1
+
+COPY --from=deps /usr/lib/libjemalloc* /usr/lib/
 COPY --from=deps /build/staging/usr/local/lib/*.so \
                  /build/staging/usr/lib/x86_64-linux-gnu/librocksdb.so.6.6.1 \
                  /usr/local/lib/liblogdevice.so \
                  /usr/local/lib/
+COPY --from=deps /build/staging/usr/local/lib/pkgconfig/libfolly.pc \
+                 /build/staging/usr/local/lib/pkgconfig/fmt.pc \
+                 /usr/local/lib/pkgconfig/
+RUN sed -i 's/-Werror=unknown-warning-option//g' /usr/local/lib/pkgconfig/libfolly.pc
 
 COPY --from=deps /build/logdevice/admin/if/gen-py3/logdevice/admin/clients.so \
                  /usr/local/lib/liblogdevice_admin_clients.so
@@ -59,7 +67,7 @@ CMD /bin/bash
 # The production image
 # -----------------------------------------------------------------------------
 
-FROM ubuntu:bionic
+FROM ubuntu:focal
 
 # ldshell _requires_ utf-8
 ENV LANG C.UTF-8
@@ -85,7 +93,7 @@ COPY --from=deps /build/lib/*.so /usr/local/lib/
 # To install the ldshell wheel we also need python3 build tools, as
 # we depend on python-Levenshtein for which a many-linux binary wheel is not
 # available; these are removed following install to keep docker image size low.
-COPY --from=deps /LogDevice/logdevice/build_tools/ubuntu_runtime.deps /tmp/logdevice_runtime.deps
+COPY docker/build_deps/ubuntu_focal_runtime.deps /tmp/logdevice_runtime.deps
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $(cat /tmp/logdevice_runtime.deps) \
@@ -95,6 +103,7 @@ RUN apt-get update && \
     strip --strip-unneeded /usr/local/lib/*.so* && \
     apt-get remove -y --auto-remove gcc python3-setuptools python3-dev && \
     rm -rf /var/lib/apt/lists/* /tmp/*.whl /tmp/*.deps
+COPY --from=deps /usr/lib/libjemalloc* /usr/lib/
 
 # ld-dev-cluster requires this
 COPY --from=deps /LogDevice/logdevice/common/test/ssl_certs/logdevice_test_valid.cert \
