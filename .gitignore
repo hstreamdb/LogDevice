@@ -19,3 +19,6 @@ logdevice-dbgsym_*.ddeb
 _local/
 /logdevice/external/opentracing/
 logdevice/external/rsocket-cpp/
+GPATH
+GRTAGS
+GTAGS
