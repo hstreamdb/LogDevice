@@ -38,11 +38,20 @@ COPY --from=deps /build/staging/usr/local/include/thrift/ /usr/local/include/thr
 COPY --from=deps /build/staging/usr/local/include/wangle/ /usr/local/include/wangle/
 COPY --from=deps /build/staging/usr/local/include/fmt/ /usr/local/include/fmt/
 COPY --from=deps /build/staging/usr/include/rocksdb/ /usr/local/include/rocksdb/
-COPY --from=deps /build/common/fb303/ /usr/local/include/common/fb303/
-COPY --from=deps /build/logdevice/admin/if/gen-cpp2/*.h /usr/local/include/logdevice/admin/if/gen-cpp2/
-COPY --from=deps /build/logdevice/common/if/gen-cpp2/*.h /usr/local/include/logdevice/common/if/gen-cpp2/
-COPY --from=deps /build/logdevice/common/membership/gen-cpp2/*.h /usr/local/include/logdevice/common/membership/gen-cpp2/
+
 COPY --from=deps /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
+
+COPY --from=deps /LogDevice/logdevice/lib/*.h /usr/local/include/logdevice/lib/
+
+COPY --from=deps /LogDevice/logdevice/common/ /usr/local/include/logdevice/common/
+RUN find /usr/local/include/logdevice/common/ -type f -name "*.cpp" | xargs rm -rf
+COPY --from=deps /build/common/fb303/ /usr/local/include/common/fb303/
+COPY --from=deps /build/logdevice/common/if/gen-cpp2/*.h /usr/local/include/logdevice/common/if/gen-cpp2/
+COPY --from=deps /build/logdevice/common/replicated_state_machine/if/gen-cpp2/*.h /usr/local/include/logdevice/common/replicated_state_machine/if/gen-cpp2/
+COPY --from=deps /build/logdevice/common/configuration/nodes/gen-cpp2/*.h /usr/local/include/logdevice/common/configuration/nodes/gen-cpp2/
+COPY --from=deps /build/logdevice/common/membership/gen-cpp2/*.h /usr/local/include/logdevice/common/membership/gen-cpp2/
+
+COPY --from=deps /build/logdevice/admin/if/gen-cpp2/*.h /usr/local/include/logdevice/admin/if/gen-cpp2/
 
 COPY --from=deps /build/staging/usr/local/bin/thrift1 /usr/local/bin/thrift1
 
