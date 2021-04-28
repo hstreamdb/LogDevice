@@ -41,7 +41,8 @@ COPY --from=deps /build/staging/usr/include/rocksdb/ /usr/local/include/rocksdb/
 
 COPY --from=deps /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
 
-COPY --from=deps /LogDevice/logdevice/lib/*.h /usr/local/include/logdevice/lib/
+COPY --from=deps /LogDevice/logdevice/lib/ /usr/local/include/logdevice/lib/
+RUN find /usr/local/include/logdevice/lib/ -type f -name "*.cpp" | xargs rm -rf
 
 COPY --from=deps /LogDevice/logdevice/common/ /usr/local/include/logdevice/common/
 RUN find /usr/local/include/logdevice/common/ -type f -name "*.cpp" | xargs rm -rf
