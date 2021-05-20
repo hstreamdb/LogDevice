@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       gcc g++ && \
     rm -rf /var/lib/apt/lists/* /tmp/*.deps && apt-get clean
 
+# headers
 COPY --from=deps /build/staging/usr/local/include/folly/ /usr/local/include/folly/
 COPY --from=deps /build/staging/usr/local/include/thrift/ /usr/local/include/thrift/
 COPY --from=deps /build/staging/usr/local/include/wangle/ /usr/local/include/wangle/
@@ -54,10 +55,12 @@ COPY --from=deps /build/logdevice/common/membership/gen-cpp2/*.h /usr/local/incl
 
 COPY --from=deps /build/logdevice/admin/if/gen-cpp2/*.h /usr/local/include/logdevice/admin/if/gen-cpp2/
 
+# binary
 COPY --from=deps /build/staging/usr/local/bin/thrift1 /usr/local/bin/thrift1
 
+# libraries
 COPY --from=deps /usr/lib/libjemalloc* /usr/lib/
-COPY --from=deps /build/staging/usr/local/lib/*.so \
+COPY --from=deps /build/staging/usr/local/lib/ \
                  /build/staging/usr/lib/x86_64-linux-gnu/librocksdb.so.6.6.1 \
                  /usr/local/lib/liblogdevice.so \
                  /usr/local/lib/
@@ -69,7 +72,8 @@ RUN sed -i 's/-Werror=unknown-warning-option//g' /usr/local/lib/pkgconfig/libfol
 COPY --from=deps /build/logdevice/admin/if/gen-py3/logdevice/admin/clients.so \
                  /usr/local/lib/liblogdevice_admin_clients.so
 
-RUN strip --strip-unneeded /usr/local/lib/*.so*
+RUN rm -rf /usr/local/lib/python3.8 /usr/local/lib/cmake && \
+    strip --strip-unneeded /usr/local/lib/*.so*
 
 CMD /bin/bash
 
@@ -87,17 +91,19 @@ COPY --from=deps /build/bin/ld* \
                  /build/bin/logdeviced \
                  /usr/local/bin/
 
+COPY --from=deps /usr/local/lib/liblogdevice.so /usr/local/lib/liblogdevice.so
+COPY --from=deps /build/staging/usr/local/lib/ /usr/local/lib/
+RUN rm -rf /usr/local/lib/python3.8 /usr/local/lib/cmake /usr/local/lib/*.a
+
 # Python tools, ldshell, ldquery and libs
 # Folly python bindings
 COPY --from=deps /build/fbthrift-prefix/src/fbthrift-build/thrift/lib/py3/cybld/dist/thrift-*.whl /tmp/
 # Thrift Py3
 COPY --from=deps /build/folly-prefix/src/folly-build/folly/cybld/dist/folly-*.whl /tmp/
-# libfolly/lib(Thrift) libraries
-COPY --from=deps /build/staging/usr/local/lib/*.so /usr/local/lib/
 # LDShell, LDops, ldquery, etc.
 COPY --from=deps /build/python-out/dist/ldshell-*.whl /tmp/
 # LogDevice client library python bindings
-COPY --from=deps /build/lib/*.so /usr/local/lib/
+COPY --from=deps /build/lib/liblogdevice_python_util.so /usr/local/lib/liblogdevice_python_util.so
 
 # Install runtime dependencies for ld-dev-cluster, ldshell friends.
 # To install the ldshell wheel we also need python3 build tools, as
