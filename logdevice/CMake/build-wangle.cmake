@@ -13,6 +13,7 @@ ExternalProject_Add(wangle
     DOWNLOAD_COMMAND ""
     CMAKE_ARGS
         -DCMAKE_POSITION_INDEPENDENT_CODE=True
+        -DBUILD_SHARED_LIBS=ON
         -DCMAKE_PREFIX_PATH=${LOGDEVICE_STAGING_DIR}/usr/local
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DBUILD_TESTS=OFF
@@ -24,7 +25,7 @@ ExternalProject_Get_Property(wangle BINARY_DIR)
 ExternalProject_Add_StepDependencies(wangle configure fizz folly)
 
 set(WANGLE_LIBRARIES
-    ${BINARY_DIR}/lib/libwangle.a)
+    ${BINARY_DIR}/lib/libwangle.so)
 
 message(STATUS "Wangle Library: ${WANGLE_LIBRARIES}")
 

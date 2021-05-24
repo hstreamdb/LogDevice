@@ -15,6 +15,7 @@ ExternalProject_Add(fizz
         -DCMAKE_POSITION_INDEPENDENT_CODE=True
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_PREFIX_PATH=${LOGDEVICE_STAGING_DIR}/usr/local
+        -DBUILD_SHARED_LIBS=ON
         -DBUILD_TESTS=OFF
         -DBUILD_EXAMPLES=OFF
         -DCMAKE_CXX_LINK_FLAGS=${CMAKE_CXX_LINK_FLAGS}
@@ -26,7 +27,7 @@ ExternalProject_Get_Property(fizz BINARY_DIR)
 ExternalProject_Add_StepDependencies(fizz configure folly)
 
 set(FIZZ_LIBRARIES
-    ${BINARY_DIR}/lib/libfizz.a)
+    ${BINARY_DIR}/lib/libfizz.so)
 
 message(STATUS "Fizz Library: ${FIZZ_LIBRARIES}")
 message(STATUS "Fizz Benchmark: ${FIZZ_BENCHMARK_LIBRARIES}")
