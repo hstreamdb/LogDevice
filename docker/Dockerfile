@@ -34,10 +34,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/* /tmp/*.deps && apt-get clean
 
 # headers
-COPY --from=deps /build/staging/usr/local/include/folly/ /usr/local/include/folly/
-COPY --from=deps /build/staging/usr/local/include/thrift/ /usr/local/include/thrift/
-COPY --from=deps /build/staging/usr/local/include/wangle/ /usr/local/include/wangle/
 COPY --from=deps /build/staging/usr/local/include/fmt/ /usr/local/include/fmt/
+COPY --from=deps /build/staging/usr/local/include/folly/ /usr/local/include/folly/
+COPY --from=deps /build/staging/usr/local/include/fizz/ /usr/local/include/fizz/
+COPY --from=deps /build/staging/usr/local/include/wangle/ /usr/local/include/wangle/
+COPY --from=deps /build/staging/usr/local/include/thrift/ /usr/local/include/thrift/
 COPY --from=deps /build/staging/usr/include/rocksdb/ /usr/local/include/rocksdb/
 
 COPY --from=deps /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
