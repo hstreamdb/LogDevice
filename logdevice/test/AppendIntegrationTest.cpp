@@ -1198,3 +1198,37 @@ TEST_F(AppendIntegrationTest, AppendPayloadGroup) {
   lsn = client->appendSync(logid, folly::copy(payload_group));
   EXPECT_EQ(LSN_INVALID, lsn);
 }
+
+TEST_F(AppendIntegrationTest, AppendBatchedPayloads) {
+  const logid_t logid{1};
+
+  auto cluster = IntegrationTestUtils::ClusterFactory().create(1);
+  // Make sure that sequencer won't reactivate.
+  cluster->waitForMetaDataLogWrites();
+
+  std::shared_ptr<Client> client = cluster->createClient();
+  ASSERT_NE(client, nullptr);
+
+  char* payloads[] = {(char*)"hello", (char*)"world"};
+  int payload_lens[] = {5, 5};
+  int total_len = 2;
+
+  Semaphore async_append_sem;
+  int rv = client->appendBatched(
+      logid,
+      payloads,
+      payload_lens,
+      total_len,
+      [&](Status st, const DataRecord& r) {
+        if (st != E::OK) {
+          ld_error("Async appendBatched failed with status %s",
+                   error_description(st));
+        }
+        EXPECT_EQ(E::OK, st);
+        EXPECT_EQ(logid, r.logid);
+        EXPECT_NE(LSN_INVALID, r.attrs.lsn);
+        async_append_sem.post();
+      });
+  EXPECT_EQ(0, rv);
+  async_append_sem.wait();
+}

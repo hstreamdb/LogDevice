@@ -36,6 +36,7 @@
 #include "logdevice/common/TailRecord.h"
 #include "logdevice/common/ThreadID.h"
 #include "logdevice/common/TrimRequest.h"
+#include "logdevice/common/buffered_writer/BufferedWriteCodec.h"
 #include "logdevice/common/client_read_stream/AllClientReadStreams.h"
 #include "logdevice/common/configuration/Configuration.h"
 #include "logdevice/common/configuration/TextConfigUpdater.h"
@@ -384,6 +385,74 @@ int ClientImpl::append(logid_t logid,
   if (!req) {
     return -1;
   }
+  return postAppend(std::move(req));
+}
+
+int ClientImpl::appendBatched(logid_t logid,
+                              char** payloads,
+                              int* payload_lens,
+                              int total_len,
+                              append_callback_t cb,
+                              Compression compression,
+                              int zstd_level,
+                              AppendAttributes attrs) noexcept {
+  BufferedWriteCodec::Estimator blob_size_estimator;
+  for (int i = 0; i < total_len; ++i) {
+    auto iobuf = folly::IOBuf::wrapBufferAsValue(payloads[i], payload_lens[i]);
+    blob_size_estimator.append(iobuf);
+  }
+  const size_t total_blob_bytes =
+      blob_size_estimator.calculateSize(/* checksum_bits */ 0);
+  BufferedWriteCodec::Encoder<BufferedWriteSinglePayloadsCodec::Encoder>
+      encoder(/* checksum_bits */ 0, total_len, total_blob_bytes);
+
+  for (int i = 0; i < total_len; ++i) {
+    encoder.append(
+        folly::IOBuf::wrapBufferAsValue(payloads[i], payload_lens[i]));
+  }
+
+  folly::IOBufQueue encoded;
+  encoder.encode(encoded, compression, zstd_level);
+  folly::IOBuf blob = encoded.moveAsValue();
+
+  PayloadHolder payload_holder;
+  payload_holder = PayloadHolder(std::move(blob));
+
+  return appendBatched(
+      logid, std::move(payload_holder), cb, attrs, worker_id_t{-1});
+}
+
+int ClientImpl::appendBatched(logid_t logid,
+                              PayloadHolder&& payload,
+                              append_callback_t cb,
+                              AppendAttributes attrs,
+                              worker_id_t target_worker) {
+  // Check that log ID is good. Don't check payload size since the limit may
+  // have changed at runtime.
+  if (!checkAppendImpl(logid,
+                       payload.size(),
+                       /* allow_extra */ true,
+                       /* ignore_payload_soft_limit */ true)) {
+    RATELIMIT_ERROR(std::chrono::seconds(1),
+                    1,
+                    "Invalid batch from batched writer (%s). This should be "
+                    "impossible, please investigate.",
+                    error_name(err));
+    ld_check(false);
+    ld_check(err != E::OK);
+    return -1;
+  }
+
+  auto req = std::make_unique<AppendRequest>(
+      bridge_.get(),
+      logid,
+      std::move(attrs),
+      std::move(payload),
+      settings_->getSettings()->append_timeout.value_or(timeout_),
+      std::move(cb));
+
+  req->setTargetWorker(target_worker);
+  req->setBufferedWriterBlobFlag();
   return postAppend(std::move(req));
 }
 
