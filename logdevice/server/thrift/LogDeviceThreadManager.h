@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <folly/Executor.h>
 #include <thrift/lib/cpp/concurrency/Thread.h>
 #include <thrift/lib/cpp/concurrency/ThreadManager.h>
 
@@ -58,7 +59,7 @@ class LogDeviceThreadManager : public ThreadManager {
   void add(std::shared_ptr<apache::thrift::concurrency::Runnable> task,
            int64_t /*timeout*/ = 0,
            int64_t /*expiration*/ = 0,
-           bool /*cancellable*/ = false) noexcept override;
+           ThreadManager::Source = ThreadManager::Source::INTERNAL) noexcept override;
 
   void add(folly::Func f) override;
 
@@ -77,6 +78,9 @@ class LogDeviceThreadManager : public ThreadManager {
   folly::Codel* getCodel() override {
     return nullptr;
   }
+
+  [[nodiscard]] folly::Executor::KeepAlive<> getKeepAlive(
+      ThreadManager::ExecutionScope es, ThreadManager::Source source) const override;
 
  private:
   void postRequest(std::function<void()>&& func);

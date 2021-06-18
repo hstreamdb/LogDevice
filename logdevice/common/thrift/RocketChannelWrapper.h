@@ -10,6 +10,7 @@
 #include <folly/io/async/EventBase.h>
 #include <thrift/lib/cpp2/async/RequestChannel.h>
 #include <thrift/lib/cpp2/async/RocketClientChannel.h>
+#include <thrift/lib/cpp2/util/MethodMetadata.h>
 
 #include "logdevice/common/debug.h"
 
@@ -51,36 +52,36 @@ class RocketChannelWrapper : public apache::thrift::RequestChannel {
 
   void sendRequestResponse(
       const apache::thrift::RpcOptions& options,
-      folly::StringPiece method_name,
+      apache::thrift::MethodMetadata&& method_name,
       apache::thrift::SerializedRequest&& request,
       std::shared_ptr<apache::thrift::transport::THeader> header,
       apache::thrift::RequestClientCallback::Ptr cob) override;
 
   void sendRequestNoResponse(
       const apache::thrift::RpcOptions& options,
-      folly::StringPiece method_name,
+      apache::thrift::MethodMetadata&& method_name,
       apache::thrift::SerializedRequest&& request,
       std::shared_ptr<apache::thrift::transport::THeader> header,
       apache::thrift::RequestClientCallback::Ptr cob) override;
 
   void
   sendRequestStream(const apache::thrift::RpcOptions& options,
-                    folly::StringPiece method_name,
+                    apache::thrift::MethodMetadata&& method_name,
                     apache::thrift::SerializedRequest&& request,
                     std::shared_ptr<apache::thrift::transport::THeader> header,
                     apache::thrift::StreamClientCallback* cob) override {
     channel_->sendRequestStream(
-        options, method_name, std::move(request), std::move(header), cob);
+        options, std::move(method_name), std::move(request), std::move(header), cob);
   }
 
   void
   sendRequestSink(const apache::thrift::RpcOptions& options,
-                  folly::StringPiece method_name,
+                  apache::thrift::MethodMetadata&& method_name,
                   apache::thrift::SerializedRequest&& request,
                   std::shared_ptr<apache::thrift::transport::THeader> header,
                   apache::thrift::SinkClientCallback* cob) override {
     channel_->sendRequestSink(
-        options, method_name, std::move(request), std::move(header), cob);
+        options, std::move(method_name), std::move(request), std::move(header), cob);
   }
 
   void setCloseCallback(apache::thrift::CloseCallback* cob) override {

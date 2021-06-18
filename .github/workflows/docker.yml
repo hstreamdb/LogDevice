@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+env:
+  BUILDER_IMAGE: hstreamdb/logdevice-builder
+  CLIENT_IMAGE: hstreamdb/logdevice-client
+  SERVER_IMAGE: hstreamdb/logdevice
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Build logdevice-builder
+        run: |
+          docker pull --tag $BUILDER_IMAGE || true
+          docker build . -f docker/Dockerfile.builder --tag $BUILDER_IMAGE
+
+      - name: Build logdevice
+        run: |
+          docker build . -f docker/Dockerfile --tag $SERVER_IMAGE
+          docker build . -f docker/Dockerfile --tag $CLIENT_IMAGE --target client
+
+      # TODO: Push images
+      #
+      # if [ "${{ github.event_name }}" == 'push' ]; then
+      #   if [ "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+      #     echo "Docker login..."
+      #     echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      #     docker push $BUILDER_IMAGE
+      #   else
+      #     echo "No such secrets, ignored."
+      #   fi
+      # fi

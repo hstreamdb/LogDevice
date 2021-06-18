@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+
+env:
+  BUILDER_IMAGE: hstreamdb/logdevice-builder
+  CLIENT_IMAGE: hstreamdb/logdevice-client
+  SERVER_IMAGE: hstreamdb/logdevice
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            _build
+          key: ${{ runner.os }}-
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - name: Prepare logdevice-builder
+        run: |
+          docker pull --tag $BUILDER_IMAGE || true
+          docker build . -f docker/Dockerfile.builder --tag $BUILDER_IMAGE
+
+      - name: Start a builder shell
+        run: docker run -td --name ld_builder -v $(pwd):/LogDevice -w /LogDevice $BUILDER_IMAGE bash
+
+      - name: build
+        run: |
+          docker exec ld_builder bash -c 'mkdir -p _build && cd _build && \
+          cmake -Dthriftpy3=ON \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DBUILD_SUBMODULES=OFF \
+                -DBUILD_TESTS=ON \
+                -DCMAKE_MODULE_PATH=/usr/local/lib/cmake \
+                /LogDevice/logdevice/ && \
+          make -j$(nproc) && make install -j$(nproc)
+          '
+
+      - name: tests
+        run: |
+          docker exec ld_builder bash -c 'cd _build && \
+          make ARGS="-j$(nproc) --output-on-failure --no-compress-output -T Test" test
+          '

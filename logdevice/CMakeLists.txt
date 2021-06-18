@@ -73,11 +73,9 @@ else()
   find_package(fizz CONFIG REQUIRED)
   find_package(wangle CONFIG REQUIRED)
   find_package(FBThrift CONFIG REQUIRED)
-  find_package(fmt CONFIG REQUIRED)
   find_program(THRIFT1 thrift1)
   find_path(THRIFT_COMPILER_INCLUDE thrift/lib/cpp2/Thrift.h)
   set(FBTHRIFT_LIBRARIES
-    FBThrift::protocol
     FBThrift::thriftprotocol
     FBThrift::transport
     FBThrift::concurrency
