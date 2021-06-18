@@ -142,6 +142,24 @@ class ClientImpl : public Client,
              worker_id_t target_worker,
              std::unique_ptr<std::string> per_request_token);
 
+  // For C-like callers. e.g. haskell ffi
+  int appendBatched(
+      logid_t logid,
+      char** payloads,
+      int* payload_lens,
+      int total_len,
+      append_callback_t cb,
+      Compression compression = Compression::LZ4,
+      // * zstd_level must be specified if ZSTD compression is used.
+      int zstd_level = 0,
+      AppendAttributes attrs = AppendAttributes()) noexcept override;
+
+  int appendBatched(logid_t logid,
+                    PayloadHolder&& payload,
+                    append_callback_t cb,
+                    AppendAttributes attrs,
+                    worker_id_t target_worker);
+
   // Variant of append() for use by BufferedWriter.  Differences:
   // - Forces the append to go to a specific Worker.
   // - Uses a slightly higher limit on the max payload size to allow for

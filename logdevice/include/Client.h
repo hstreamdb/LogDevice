@@ -397,6 +397,18 @@ class Client {
                      append_callback_t cb,
                      AppendAttributes attrs = AppendAttributes()) noexcept = 0;
 
+  // For C-like callers. e.g. haskell ffi
+  virtual int
+  appendBatched(logid_t logid,
+                char** payloads,
+                int* payload_lens,
+                int total_len,
+                append_callback_t cb,
+                Compression compression = Compression::LZ4,
+                // * zstd_level must be specified if ZSTD compression is used.
+                int zstd_level = 0,
+                AppendAttributes attrs = AppendAttributes()) noexcept = 0;
+
   /**
    * Creates a Reader object that can be used to read from one or more logs.
    *
