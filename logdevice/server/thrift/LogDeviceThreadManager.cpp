@@ -17,7 +17,7 @@ LogDeviceThreadManager::LogDeviceThreadManager(RequestExecutor work_scheduler)
 void LogDeviceThreadManager::add(std::shared_ptr<Runnable> task,
                                  int64_t /* unused */,
                                  int64_t /* unused */,
-                                 bool /* unused */) noexcept {
+                                 ThreadManager::Source /* unused */) noexcept {
   std::function<void()> func = [=]() { task->run(); };
   postRequest(std::move(func));
 }
@@ -39,5 +39,10 @@ void LogDeviceThreadManager::postRequest(std::function<void()>&& func) {
                       request->id_.val());
   }
 }
+
+folly::Executor::KeepAlive<> LogDeviceThreadManager::getKeepAlive(
+    ThreadManager::ExecutionScope, ThreadManager::Source) const {
+    return folly::getKeepAliveToken(const_cast<LogDeviceThreadManager*>(this));
+  }
 
 }} // namespace facebook::logdevice

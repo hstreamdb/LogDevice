@@ -244,6 +244,7 @@ folly::Future<bool> NodesConfigurationInit::getConfigWithRetryingAndTimeout(
 
   return folly::futures::retrying(
              std::move(retry_policy), std::move(retry_func))
+      .toUnsafeFuture()
       .thenTry([](auto&& t) {
         if (t.hasValue()) {
           return true;

@@ -57,7 +57,8 @@ class ThriftSenderTest : public ::testing::Test {
     auto* session = findServerSession(sender, node);
     EXPECT_TRUE(session);
     auto [stream, publisher] = ServerStream<thrift::Message>::createPublisher();
-    session->registerStream(std::move(stream).toClientStream());
+    // TODO: https://github.com/facebook/fbthrift/commit/5862996c196f6aae32ee520bb11fdcabac225739
+    session->registerStream(std::move(stream).toClientStreamUnsafeDoNotUse());
     return std::move(publisher);
   }
 

@@ -41,7 +41,7 @@ AdminCommandClient::asyncSend(
               }
 
               std::shared_ptr<folly::SSLContext> ssl_context{nullptr};
-              std::shared_ptr<folly::AsyncSocket> transport;
+              folly::AsyncSocket::UniquePtr transport;
               if (r.type == Request::ConnectionType::PLAIN) {
                 transport = folly::AsyncSocket::newSocket(evb);
               } else {

@@ -33,6 +33,8 @@ ExternalProject_Add(rocksdb
         -DWITH_ZLIB=ON
         # Disable ZSTD for now as it breaks internal build
         -DWITH_ZSTD=OFF
+        # Disable this as builds fail.
+        -DWITH_BENCHMARK_TOOLS=OFF
         -DCMAKE_POSITION_INDEPENDENT_CODE=True
     INSTALL_COMMAND $(MAKE) install DESTDIR=${LOGDEVICE_STAGING_DIR}
     )

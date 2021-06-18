@@ -82,13 +82,13 @@ CallbackPtr RocketChannelWrapper::wrapIfUnsafe(CallbackPtr cob) {
 
 void RocketChannelWrapper::sendRequestResponse(
     const apache::thrift::RpcOptions& options,
-    folly::StringPiece method_name,
+    apache::thrift::MethodMetadata&& method_name,
     apache::thrift::SerializedRequest&& request,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     CallbackPtr cob) {
   cob = wrapIfUnsafe<false>(std::move(cob));
   channel_->sendRequestResponse(options,
-                                method_name,
+                                std::move(method_name),
                                 std::move(request),
                                 std::move(header),
                                 std::move(cob));
@@ -96,13 +96,13 @@ void RocketChannelWrapper::sendRequestResponse(
 
 void RocketChannelWrapper::sendRequestNoResponse(
     const apache::thrift::RpcOptions& options,
-    folly::StringPiece method_name,
+    apache::thrift::MethodMetadata&& method_name,
     apache::thrift::SerializedRequest&& request,
     std::shared_ptr<apache::thrift::transport::THeader> header,
     CallbackPtr cob) {
   cob = wrapIfUnsafe<true>(std::move(cob));
   channel_->sendRequestNoResponse(options,
-                                  method_name,
+                                  std::move(method_name),
                                   std::move(request),
                                   std::move(header),
                                   std::move(cob));

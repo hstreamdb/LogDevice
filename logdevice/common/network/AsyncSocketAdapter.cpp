@@ -171,14 +171,14 @@ bool AsyncSocketAdapter::getSSLSessionReused() const {
 std::shared_ptr<folly::ssl::SSLSession> AsyncSocketAdapter::getSSLSession() {
   auto transport = dynamic_cast<folly::AsyncSSLSocket*>(transport_.get());
   ld_check(transport);
-  return transport->getSSLSessionV2();
+  return transport->getSSLSession();
 }
 
 void AsyncSocketAdapter::setSSLSession(
     std::shared_ptr<folly::ssl::SSLSession> session) {
   auto transport = dynamic_cast<folly::AsyncSSLSocket*>(transport_.get());
   ld_check(transport);
-  transport->setSSLSessionV2(session);
+  transport->setSSLSession(session);
 }
 
 }} // namespace facebook::logdevice
