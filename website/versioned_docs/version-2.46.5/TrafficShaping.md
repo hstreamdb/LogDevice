@@ -212,7 +212,7 @@ Several statistics track the behavior of traffic shaping. You can see their defi
 
 * /logdevice/common/stats/per_flow_group_stats.inc
 * /logdevice/common/stats/per_traffic_class_stats.inc
-* /logdevice/common/stats/per_msg_priority_stats.inc  
+* /logdevice/common/stats/per_msg_priority_stats.inc
 * /logdevice/common/stats/per_message_type_stats.inc
 
 
@@ -307,76 +307,165 @@ END
 
 ## Traffic shaping design
 
-LogDevice employs a variation of the token bucket algorithm for metering traffic at a given priority. In LogDevice's case, however, the bucket analogy isn't perfect. Let's look at how the LogDevice scheme is different.
+LogDevice employs a variation of the token bucket algorithm for metering
+traffic at a given priority. In LogDevice's case, however, the bucket analogy
+isn't perfect. Let's look at how the LogDevice scheme is different.
 
 ### Really large messages
 
-The maximum message payload size allowed in the system is 32MB. That limit that will only be reached by applications writing log records of that size. Although this should be extremely rare, the traffic shaping system must still allow these messages to pass, even if they exceed the configured maximum burst size. To make this possible, LogDevice will release the next message for a queue being metered by a bucket so long as any credit remains. A message that is larger than the available credit will cause the level to go negative, deferring future transmissions until the level again becomes positive.
-
+The maximum message payload size allowed in the system is 32MB. That limit that
+will only be reached by applications writing log records of that size. Although
+this should be extremely rare, the traffic shaping system must still allow
+these messages to pass, even if they exceed the configured maximum burst size.
+To make this possible, LogDevice will release the next message for a queue
+being metered by a bucket so long as any credit remains. A message that is
+larger than the available credit will cause the level to go negative, deferring
+future transmissions until the level again becomes positive.
 
 ### Shaping by priority
 
-Each message priority level has an independently operated and configurable bucket which meters the flow of messages at that priority. The priority level specific buckets are the perfect tool for configuring the minimum guaranteed bandwidth and maximum burst size for traffic types of different importance. In most configurations, for example, rebuild traffic must not degrade the performance of normal client activity, but some amount of rebuild activity must be allowed in order to meet a "restoration of replication factor" SLA. The bandwidth necessary to achieve that SLA can be reserved via appropriate tuning of the REBUILD priority's bucket.
+Each message priority level has an independently operated and configurable
+bucket which meters the flow of messages at that priority. The priority level
+specific buckets are the perfect tool for configuring the minimum guaranteed
+bandwidth and maximum burst size for traffic types of different importance. In
+most configurations, for example, rebuild traffic must not degrade the
+performance of normal client activity, but some amount of rebuild activity must
+be allowed in order to meet a "restoration of replication factor" SLA. The
+bandwidth necessary to achieve that SLA can be reserved via appropriate tuning
+of the REBUILD priority's bucket.
 
 ### The priority queue bucket
 
-The token bucket algorithm on its own has limited support for variable workloads. The capacity of the bucket allows the occasional burst of traffic to be tolerated, but what happens during prolonged periods where the bandwidth for a priority level isn't consumed? This is bandwidth that can and should be used for some beneficial purpose.
+The token bucket algorithm on its own has limited support for variable
+workloads. The capacity of the bucket allows the occasional burst of traffic to
+be tolerated, but what happens during prolonged periods where the bandwidth for
+a priority level isn't consumed? This is bandwidth that can and should be used
+for some beneficial purpose.
 
-LogDevice reclaims this excess capacity and adds it to a special bucket: the priority queue bucket. Same as all other buckets in the system, this bucket has a configurable capacity and refill rate. Unlike the buckets whose overflow feeds into it, when the priority queue bucket overflows, there is no other bucket to catch the discarded credit. This ensures that this "reclamation scheme" doesn't violate the total configured burst size of the system (i.e., the sum of capacities of all buckets, including the priority queue bucket).
+LogDevice reclaims this excess capacity and adds it to a special bucket: the
+priority queue bucket. Same as all other buckets in the system, this bucket has
+a configurable capacity and refill rate. Unlike the buckets whose overflow
+feeds into it, when the priority queue bucket overflows, there is no other
+bucket to catch the discarded credit. This ensures that this "reclamation
+scheme" doesn't violate the total configured burst size of the system (i.e.,
+the sum of capacities of all buckets, including the priority queue bucket).
 
-Credits are transferred from the priority queue class to other classes, as needed, in priority order.
+Credits are transferred from the priority queue class to other classes, as
+needed, in priority order.
 
 ## Controlling memory consumption
 
-There are per-worker and per-process limits on the bytes of pending network messages. This limit is enforced above traffic shaping.
+There are per-worker and per-process limits on the bytes of pending network
+messages. This limit is enforced above traffic shaping.
 
-Outbound messages can be deferred for many reasons: a connection may transit a congested hop, a peer may fail leaving a blocked socket until the dropped connection is noticed, or LogDevice may temporarily get "ahead of the network" in processing incoming requests and generating outbound messages. Traffic shaping merely adds another possible reason for messages to be deferred: artificial congestion.
+Outbound messages can be deferred for many reasons: a connection may transit a
+congested hop, a peer may fail leaving a blocked socket until the dropped
+connection is noticed, or LogDevice may temporarily get "ahead of the network"
+in processing incoming requests and generating outbound messages. Traffic
+shaping merely adds another possible reason for messages to be deferred:
+artificial congestion.
 
 ## Applying traffic shaping to different resources
 
-Within the LogDevice code base, a collection of buckets, one per priority level plus one for the priority queue, is encapsulated in the FlowMeter class. The combination of a FlowMeter, with the logic for applying configuration and bandwidth updates from the TrafficShaper, makes a FlowGroup.
+Within the LogDevice code base, a collection of buckets, one per priority level
+plus one for the priority queue, is encapsulated in the FlowMeter class. The
+combination of a FlowMeter, with the logic for applying configuration and
+bandwidth updates from the TrafficShaper, makes a FlowGroup.
 
-FlowGroups are so called because they are shared by connections/traffic flows that contend on the same resource. To put this in more concrete terms and since FlowGroups use the same NodeLocationScope definitions used for describing failure domains, look at the definitions in `LogDevice/logdevice/include/node_location_scopes.inc`.
+FlowGroups are so called because they are shared by connections/traffic flows
+that contend on the same resource. To put this in more concrete terms and since
+FlowGroups use the same NodeLocationScope definitions used for describing
+failure domains, look at the definitions in
+`LogDevice/logdevice/include/node_location_scopes.inc`.
 
 
-These scopes correlate to the likely domains that have different levels of network bandwidth.
+These scopes correlate to the likely domains that have different levels of
+network bandwidth.
+
 * When a LogDevice sequencer stores data on its local node (i.e., within the NODE scope), network bandwidth isn't consumed at all, so the messages related to this store shouldn't be limited.
 * When a transmission is made to a peer within the same rack (i.e., within the RACK scope), transmission should be limited by top-of-rack switch bandwidth.
 * Cluster switch bandwidth will become the dominant limiting factor somewhere within the ROW, CLUSTER, DATA_CENTER, and REGION scopes, depending on the switching topology.
 * If a cross region hop is necessary for a connection, the bandwidth limits for cross region traffic can be assigned to the ROOT (logical LogDevice Cluster) scope.
 
-During the establishment of a new connection, LogDevice retrieves information from the cluster configuration and determines the smallest scope that is shared with the peer. This scope information is used to select the FlowGroup that will be used to meter the connection.
+During the establishment of a new connection, LogDevice retrieves information
+from the cluster configuration and determines the smallest scope that is shared
+with the peer. This scope information is used to select the FlowGroup that will
+be used to meter the connection.
 
-While LogDevice creates a FlowGroup for each of the scopes listed above, not all of them are useful for every traffic shaping configuration. By default, only the NODE and ROOT scopes are available for connection assignment. This simplifies the traffic shaping logic since it can assume there will always be some FlowGroup that applies to each new connection. Additional FlowGroups must be present in the cluster configuration for them to be eligible for assignment.
+While LogDevice creates a FlowGroup for each of the scopes listed above, not
+all of them are useful for every traffic shaping configuration. By default,
+only the NODE and ROOT scopes are available for connection assignment. This
+simplifies the traffic shaping logic since it can assume there will always be
+some FlowGroup that applies to each new connection. Additional FlowGroups must
+be present in the cluster configuration for them to be eligible for assignment.
 
-Changing the configured status of a FlowGroup requires a restart of the LogDevice daemon because there is currently no mechanism to dynamically reassign connections to a different FlowGroup.
+Changing the configured status of a FlowGroup requires a restart of the
+LogDevice daemon because there is currently no mechanism to dynamically
+reassign connections to a different FlowGroup.
 
-All FlowGroups default to being disabled. A configured, but disabled FlowGroup will pass all traffic. FlowGroups that are configured can be enabled or disabled dynamically via a configuration update or through the admin interface.
+All FlowGroups default to being disabled. A configured, but disabled FlowGroup
+will pass all traffic. FlowGroups that are configured can be enabled or
+disabled dynamically via a configuration update or through the admin interface.
 
 ## Fairness and independent workers
 
-To avoid contention as much as possible between CPUs, LogDevice employs "worker threads" that operate primarily without reference to global state. The traffic shaping code takes advantage of the existing worker architecture to limit the contention it causes.
+To avoid contention as much as possible between CPUs, LogDevice employs "worker
+threads" that operate primarily without reference to global state. The traffic
+shaping code takes advantage of the existing worker architecture to limit the
+contention it causes.
 
-Each logical FlowGroup is sharded into per-worker instances. These instances have their capacity and bandwidth allocations scaled accordingly so that the sum of the FlowGroup instances matches the globally defined limits in the configuration. The only cross worker activity occurs when the TrafficShaper deposits credit in and updates the configuration for each FlowGroup instance. This currently happens at 1KHz when traffic shaping is enabled on any scope. If it is not enabled, the TrafficShaper goes to sleep until a configuration change occurs.
+Each logical FlowGroup is sharded into per-worker instances. These instances
+have their capacity and bandwidth allocations scaled accordingly so that the
+sum of the FlowGroup instances matches the globally defined limits in the
+configuration. The only cross worker activity occurs when the TrafficShaper
+deposits credit in and updates the configuration for each FlowGroup instance.
+This currently happens at 1KHz when traffic shaping is enabled on any scope. If
+it is not enabled, the TrafficShaper goes to sleep until a configuration change
+occurs.
 
 <img src="assets/traffic_shaping/Logdevice_worker_flowgroups.jpg" style="float"  />
 
-When the TrafficShaper visits each FlowGroup instance to deposit credit, it must take steps to ensure that, if sufficient load exists, all bandwidth allocated to a particular scope/priority is consumed by that scope/priority. It must also work to maintain fairness between the independent workers.
+When the TrafficShaper visits each FlowGroup instance to deposit credit, it
+must take steps to ensure that, if sufficient load exists, all bandwidth
+allocated to a particular scope/priority is consumed by that scope/priority. It
+must also work to maintain fairness between the independent workers.
 
-To see why this is necessary, consider another rebuild example. In this case, only a single connection is requesting reads for a rebuild operation, and this connection falls on worker 0. This one connection should have access to all of the minimum guaranteed bandwidth allocated to rebuilding for the entire machine. Unfortunately, due to sharding of the FlowGroups, it only has 1/nth (with n being the number of workers). This is an extreme case of load imbalance, but a similar issue occurs any time workers have different amounts of work to perform for the same priority level.
+To see why this is necessary, consider another rebuild example. In this case,
+only a single connection is requesting reads for a rebuild operation, and this
+connection falls on worker 0. This one connection should have access to all of
+the minimum guaranteed bandwidth allocated to rebuilding for the entire
+machine. Unfortunately, due to sharding of the FlowGroups, it only has 1/nth
+(with n being the number of workers). This is an extreme case of load
+imbalance, but a similar issue occurs any time workers have different amounts
+of work to perform for the same priority level.
 
-Addressing this issue requires some modification to the "reclamation scheme" introduced in the [priority queue bucket](#the-priority-queue-bucket) section. As the TrafficShaper fills buckets with their refill quantum, any overflow is captured in the "current overflow" bucket. This bucket is unique to each scope/priority.
+Addressing this issue requires some modification to the "reclamation scheme"
+introduced in the [priority queue bucket](#the-priority-queue-bucket) section.
+As the TrafficShaper fills buckets with their refill quantum, any overflow is
+captured in the "current overflow" bucket. This bucket is unique to each
+scope/priority.
 
 <img src="assets/traffic_shaping/Logdevice_bw_overflow_capture.jpg" style="float"  />
 
-Once all buckets have been serviced, the excess bandwidth is deposited in a first-fit fashion across buckets for that same scope/priority.
+Once all buckets have been serviced, the excess bandwidth is deposited in a
+first-fit fashion across buckets for that same scope/priority.
 
 <img src="assets/traffic_shaping/Logdevice_last_overflow_application.jpg" style="float"  />
 
-Any remaining bandwidth credit is summed across all priorities within a scope and fed on a first-fit basis to the priority queue buckets for that scope. If bandwidth still remains, it is finally discarded.
+Any remaining bandwidth credit is summed across all priorities within a scope
+and fed on a first-fit basis to the priority queue buckets for that scope. If
+bandwidth still remains, it is finally discarded.
 
-To ensure fair distribution of "last overflow" credit amongst the workers, the order in which they are processed is randomized each time TrafficShaper is invoked.
+To ensure fair distribution of "last overflow" credit amongst the workers, the
+order in which they are processed is randomized each time TrafficShaper is
+invoked.
 
 ## Future work
 
-Currently, traffic shaping support uses a static configuration. When faced with an outage that requires a reduction in the total bandwidth expended, the only choice is to push a new config that tunes the cluster lower. Ideally, the traffic shaping logic would be able to detect such an event by seeing a growth in the backlog of messages to send. In response, the excess capacity during normal operations, represented by the settings of the priority queue bucket, would be scaled back until backlog growth stopped.
+Currently, traffic shaping support uses a static configuration. When faced with
+an outage that requires a reduction in the total bandwidth expended, the only
+choice is to push a new config that tunes the cluster lower. Ideally, the
+traffic shaping logic would be able to detect such an event by seeing a growth
+in the backlog of messages to send. In response, the excess capacity during
+normal operations, represented by the settings of the priority queue bucket,
+would be scaled back until backlog growth stopped.

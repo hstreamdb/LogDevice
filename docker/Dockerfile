@@ -46,10 +46,13 @@ COPY --from=deps /build/staging/usr/include/rocksdb/ /usr/local/include/rocksdb/
 COPY --from=deps /LogDevice/logdevice/include/ /usr/local/include/logdevice/include/
 
 COPY --from=deps /LogDevice/logdevice/lib/ /usr/local/include/logdevice/lib/
-RUN find /usr/local/include/logdevice/lib/ -type f -name "*.cpp" | xargs rm -rf
-
 COPY --from=deps /LogDevice/logdevice/common/ /usr/local/include/logdevice/common/
-RUN find /usr/local/include/logdevice/common/ -type f -name "*.cpp" | xargs rm -rf
+COPY --from=deps /LogDevice/logdevice/ops/ldquery/ /usr/local/include/logdevice/ops/ldquery/
+RUN find /usr/local/include/logdevice/lib/ -type f -name "*.cpp" | xargs rm -rf && \
+    find /usr/local/include/logdevice/common/ -type f -name "*.cpp" | xargs rm -rf && \
+    rm -rf /usr/local/include/logdevice/ops/ldquery/py && \
+    find /usr/local/include/logdevice/ops/ldquery/ -type f -name "*.cpp" | xargs rm -rf
+
 COPY --from=deps /build/common/fb303/ /usr/local/include/common/fb303/
 COPY --from=deps /build/logdevice/common/if/gen-cpp2/*.h /usr/local/include/logdevice/common/if/gen-cpp2/
 COPY --from=deps /build/logdevice/common/replicated_state_machine/if/gen-cpp2/*.h /usr/local/include/logdevice/common/replicated_state_machine/if/gen-cpp2/
@@ -65,6 +68,7 @@ COPY --from=deps /usr/local/bin/thrift1 /usr/local/bin/thrift1
 COPY --from=deps /usr/lib/libjemalloc.so.2 /usr/lib/
 COPY --from=deps /build/staging/usr/local/lib/ \
                  /build/staging/usr/lib/x86_64-linux-gnu/ \
+                 /build/lib/libldquery.so \
                  /usr/local/lib/ \
                  /usr/local/lib/
 RUN sed -i 's/-Werror=unknown-warning-option//g' /usr/local/lib/pkgconfig/libfolly.pc && \
