@@ -16,12 +16,10 @@ REMOVE_MATCHES_FROM_LISTS(files
     "markdown-ld-query.cpp"
 )
 
-add_library(ldquery STATIC ${hfiles} ${files})
-add_dependencies(ldquery common gason_sources admin_command_client)
+add_library(ldquery SHARED ${hfiles} ${files})
+add_dependencies(ldquery gason_sources admin_command_client)
 target_link_libraries(ldquery
-  common
   logdevice_server
-  logdevice_python
   ldclient
   logdevice_safety_checker
   admin_command_client
@@ -30,12 +28,10 @@ target_link_libraries(ldquery
   ${Boost_LIBRARIES}
   ${LIBGFLAGS_LIBRARY}
 )
-
-
-add_executable(markdown-ldquery "markdown-ldquery.cpp")
-target_link_libraries(markdown-ldquery ldquery admin_command_client)
-
-add_subdirectory(py)
-
 set_target_properties(ldquery
   PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_executable(markdown-ldquery "markdown-ldquery.cpp")
+target_link_libraries(markdown-ldquery ldquery)
+
+add_subdirectory(py)

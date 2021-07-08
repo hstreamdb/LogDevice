@@ -10,6 +10,7 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 
 target_link_libraries(logdevice_ldquery_python
   ldquery
+  logdevice_python
 )
 
 # Since CMake prepends 'lib' to each library
